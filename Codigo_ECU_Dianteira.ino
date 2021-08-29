@@ -17,13 +17,17 @@
 #define SPI_CS 10
 mcp2515_can CAN(SPI_CS); // Cria classe da CAN
 
+// Módulo SD Card
+#define CS_CardSD 4 // Pino de comunicação SPI
+#include <SD.h>  // Biblioteca para salvar dados no SD
+File MeuArquivo; // Cria objeto da classe File
 
 
 void setup() 
 {
-  Serial.begin(115200); // LoRa611PRO
+  Serial.begin(9600); // LoRa611PRO
   // Definição dos pinos
-  SERIAL_PORT_MONITOR.begin(115200);
+  SERIAL_PORT_MONITOR.begin(9600);
   // Verifica se a Serial foi iniciada
   while(!Serial){};
   // Verifica se a CAN foi iniciada
@@ -32,7 +36,16 @@ void setup()
       SERIAL_PORT_MONITOR.println("CAN Falhou, tentando novamente...");
       delay(100);
   }
-  SERIAL_PORT_MONITOR.println("CAN Iniciada, Tudo OK!"); 
+  SERIAL_PORT_MONITOR.println("CAN Iniciada, Tudo OK!");
+   
+  // Verifica o cartão SD
+  SERIAL_PORT_MONITOR.print("Iniciando Cartao SD...");
+  while (!SD.begin(CS_CardSD)) 
+  {
+    SERIAL_PORT_MONITOR.println("Cartão SD falhou!");
+  }
+  SERIAL_PORT_MONITOR.println("Inicialização feita.");
+  MeuArquivo = SD.open("Dados.txt", FILE_WRITE); // Abro um arquivo para escrita
 }
 
 void loop() 
@@ -40,12 +53,21 @@ void loop()
   unsigned char Buf[8]={0};
   if (CAN_MSGAVAIL == CAN.checkReceive()) // Se possuir mensagem na rede CAN
   {        
-    CAN.readMsgBuf(8, buf); // Leio a mensagem e salvo num buffer
+    CAN.readMsgBuf(8, Buf); // Leio a mensagem e salvo num buffer
     // Mandando a mensagem pelo LoRa
     Serial.print("["); 
     for(int i = 0; i < 8; i++)
       Serial.print(Buf[i] + " ");
     Serial.println("]"); 
-    // Escrevendo no cartão SD     
+    // Escrevendo no cartão SD   
+    // digitalWrite(SPI_CS, HIGH) testar CAN com o SD
+    if(MeuArquivo) // Se meu arquivo foi aberto
+    {
+      MeuArquivo.print("[");
+      for(int i = 0; i < 8; i++)
+        MeuArquivo.print(Buf[i] + " ");
+      Serial.println("]"); 
+    }
+    
   }
 }
