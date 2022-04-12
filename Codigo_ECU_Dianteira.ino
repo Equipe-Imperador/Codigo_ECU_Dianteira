@@ -36,7 +36,7 @@ File MeuArquivo; // Cria objeto da classe File
 
 void setup() 
 {
-  Wire.begin(0x01); // Começa a I2C com endereço 0x01
+  Wire.begin(); // Começa a I2C 
   Serial.begin(9600); // LoRa611PRO
   // Definição dos pinos
   SERIAL_PORT_MONITOR.begin(9600);
@@ -125,17 +125,23 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
         case 1: // ECU Media
           switch(i) // Com base na indexação de cada ECU
           {
-            case 0:
-              I2C("T",atual[i]); // Mandando dados para o painel
-              break;
-            case 1:
-              I2C("CT",atual[i]);
-              break;
             case 2:
-              I2C("CF",atual[i]);
+              if(atual[i] == 1)
+                I2C("L",11); // Envio 11 pois significa que o LED 1 tem valor de 1(HIGH)
+              else if(atual[i] == 0)
+                I2C("L",10);
               break;
-            case 5:
-              I2C("CB",atual[i]);
+            case 3:
+              if(atual[i] == 1)
+                I2C("L",21);
+              else if(atual[i] == 0)
+                I2C("L",20);
+              break;
+            case 6:
+              if(atual[i] == 1)
+                I2C("L",31);
+              else if(atual[i] == 0)
+                I2C("L",30);
               break;
           }
           break;
@@ -149,7 +155,11 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
               I2C("R",LedRPM(atual[1])); // Chamo as funções LedRPM e LedComb para calcular quantos LEDs devo acender
               break;
             case 6:
-              I2C("L",LedComb(atual[i]));  
+              I2C("C",LedComb(atual[i]));
+              if(LedComb(atual[i]) <= 4)
+                I2C("L",41);
+              else if(LedComb(atual[i]) > 4)
+                I2C("L",40);   
               break;
           }
           break;
@@ -166,9 +176,10 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
 
 void I2C(unsigned char* ID, unsigned char* Valor)
 {
-  Wire.beginTransmission(0x10); // Inicia transmissão com o endereço 0x10 (Painel)
-  Wire.write(*ID), Wire.write(*Valor);
+  Wire.beginTransmission(0x8); // Inicia transmissão com o endereço 0x8 (Painel)
+  Wire.write(*ID), Wire.write(*Valor), Wire.write(";");
   Wire.endTransmission();
+  delay(5);
 }
 
 /* 
@@ -207,35 +218,35 @@ int LedRPM(unsigned char* Mil)
 
 /* 
     Função para calcular numero de LEDs acessos no painel.
-    Todos os valores foram definidos com base numa divisão de 300mL a cada led
+    Todos os valores foram definidos com base numa divisão de 430mL a cada led
     Parâmetros: Valor do tanque em litros, Valor do tanque em mililitros.
     Return: Número de LEDs para acender.
  */
 int LedComb(unsigned char* L)
 {
-  if(*L >= 36)
+  if(*L >= 52)
     return 12;
-  else if(*L >= 33)
+  else if(*L >= 47)
     return 11;
-  else if(*L >= 30)
+  else if(*L >= 43)
     return 10;
-  else if(*L >= 27)
+  else if(*L >= 39)
     return 9;
-  else if(*L >= 24)
+  else if(*L >= 34)
     return 8;
-  else if(*L >= 21)
+  else if(*L >= 30)
     return 7;
-  else if(*L >= 18)
+  else if(*L >= 26)
     return 6;
-  else if(*L >= 15)
+  else if(*L >= 21)
     return 5;
-  else if(*L >= 12)
+  else if(*L >= 17)
     return 4;
-  else if(*L >= 9)
+  else if(*L >= 13)
     return 3;
-  else if(*L >= 6)
+  else if(*L >= 9)
     return 2;
-  else if(*L >= 3)
+  else if(*L >= 4)
     return 1;
 }
 
