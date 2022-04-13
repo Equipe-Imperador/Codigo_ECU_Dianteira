@@ -16,10 +16,10 @@
 
 // Funções
 void ComparaVetor(unsigned char*, unsigned char*, int); // Comparar mudanças nos dados CAN
-void EnviaDados(unsigned char*, int); // Percorre vetor para enviar
-void I2C(unsigned char*, unsigned char*); // Envio de I2C
-int LedRPM(unsigned char*); // Calcular o numero de leds do RPM
-int LedComb(unsigned char*); // Calcular o numero de leds do combustível
+void I2C(String, int); // Envio de I2C
+void Lora(String); // Envio para telemetria
+int LedRPM(int); // Calcular o numero de leds do RPM
+int LedComb(int); // Calcular o numero de leds do combustível
 void TransfereVetor(unsigned char*, unsigned char*, int); // Transfere dados de um vetor para outro
 
 // Módulo CAN
@@ -68,12 +68,6 @@ void loop()
     CAN.readMsgBuf(8, Buf); // Leio a mensagem e salvo num buffer
     ID_MSG = CAN.getCanId(); // Pego endereço da mensagem
     
-    // Mandando a mensagem pelo LoRa
-    Serial.print("["); 
-    for(int i = 0; i < 8; i++)
-      Serial.print(Buf[i]), Serial.print(";");   
-    Serial.print(ID_MSG, HEX), Serial.println("]");
-
     // Transferindo vetores e comparando mudanças
     switch (ID_MSG)
     {
@@ -125,19 +119,19 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
         case 1: // ECU Media
           switch(i) // Com base na indexação de cada ECU
           {
-            case 2:
+            case 2: // Temperatura
               if(atual[i] == 1)
                 I2C("L",11); // Envio 11 pois significa que o LED 1 tem valor de 1(HIGH)
               else if(atual[i] == 0)
                 I2C("L",10);
               break;
-            case 3:
+            case 3: // Freio
               if(atual[i] == 1)
                 I2C("L",21);
               else if(atual[i] == 0)
                 I2C("L",20);
               break;
-            case 6:
+            case 6: // Bateria
               if(atual[i] == 1)
                 I2C("L",31);
               else if(atual[i] == 0)
@@ -156,9 +150,9 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
               break;
             case 6:
               I2C("C",LedComb(atual[i]));
-              if(LedComb(atual[i]) <= 4)
+              if(LedComb(atual[i]) <= 2)
                 I2C("L",41);
-              else if(LedComb(atual[i]) > 4)
+              else if(LedComb(atual[i]) > 2)
                 I2C("L",40);   
               break;
           }
@@ -174,80 +168,95 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
     Return: VOID.
  */
 
-void I2C(unsigned char* ID, unsigned char* Valor)
+void I2C(String ID, int Valor)
 {
-  Wire.beginTransmission(0x8); // Inicia transmissão com o endereço 0x8 (Painel)
-  Wire.write(*ID), Wire.write(*Valor), Wire.write(";");
+  String str = "", lora = "";
+  str += ID, lora += ID;
+  str += Valor, lora += Valor;
+  str += ";;", lora += ";";
+  Wire.beginTransmission(8); // Inicia transmissão com o endereço 0x8 (Painel)
+  Wire.write(str.c_str());
   Wire.endTransmission();
-  delay(5);
+  delay(20);
+  Lora(str); //Envio do padrão para telemetria
 }
 
 /* 
     Função para calcular numero de LEDs acessos no painel.
     Todos os valores foram definidos com base numa divisão de 500RPM a cada led
-    Parâmetros: Valor do RPM na casa dos milhares, Valor RPm na cada das dezenas.
+    Parâmetros: Valor do RPM na casa dos milhares.
     Return: Número de LEDs para acender.
  */
-int LedRPM(unsigned char* Mil)
+int LedRPM(int Mil)
 {
-  if(*Mil >= 60)
+  if(Mil >= 60)
     return 12;
-  else if(*Mil >= 55)
+  else if(Mil >= 55)
     return 11;
-  else if(*Mil >= 50)
+  else if(Mil >= 50)
     return 10;
-  else if(*Mil >= 45)
+  else if(Mil >= 45)
     return 9;
-  else if(*Mil >= 40)
+  else if(Mil >= 40)
     return 8;
-  else if(*Mil >= 35)
+  else if(Mil >= 35)
     return 7;
-  else if(*Mil >= 30)
+  else if(Mil >= 30)
     return 6;
-  else if(*Mil >= 25)
+  else if(Mil >= 25)
     return 5;
-  else if(*Mil >= 20)
+  else if(Mil >= 20)
     return 4;
-  else if(*Mil >= 15)
+  else if(Mil >= 15)
     return 3;
-  else if(*Mil >= 10)
+  else if(Mil >= 10)
     return 2;
-  else if(*Mil >= 5)
+  else if(Mil >= 5)
     return 1;
 }
 
 /* 
     Função para calcular numero de LEDs acessos no painel.
     Todos os valores foram definidos com base numa divisão de 430mL a cada led
-    Parâmetros: Valor do tanque em litros, Valor do tanque em mililitros.
+    Parâmetros: Valor do tanque em litros.
     Return: Número de LEDs para acender.
  */
-int LedComb(unsigned char* L)
+int LedComb(int L)
 {
-  if(*L >= 52)
+  if(L >= 52)
     return 12;
-  else if(*L >= 47)
+  else if(L >= 47)
     return 11;
-  else if(*L >= 43)
+  else if(L >= 43)
     return 10;
-  else if(*L >= 39)
+  else if(L >= 39)
     return 9;
-  else if(*L >= 34)
+  else if(L >= 34)
     return 8;
-  else if(*L >= 30)
+  else if(L >= 30)
     return 7;
-  else if(*L >= 26)
+  else if(L >= 26)
     return 6;
-  else if(*L >= 21)
+  else if(L >= 21)
     return 5;
-  else if(*L >= 17)
+  else if(L >= 17)
     return 4;
-  else if(*L >= 13)
+  else if(L >= 13)
     return 3;
-  else if(*L >= 9)
+  else if(L >= 9)
     return 2;
-  else if(*L >= 4)
+  else if(L >= 4)
     return 1;
+}
+
+/* 
+    Função para envio de uma string por Serial.
+    Parâmetros: String.
+    Return: VOID.
+ */
+void Lora(String str)
+{
+  Serial.println(str);
 }
 
 /* 
