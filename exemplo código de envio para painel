@@ -1,0 +1,75 @@
+// Wire Master Writer
+// by Nicholas Zambetti <http://www.zambetti.com>
+
+// Demonstrates use of the Wire library
+// Writes data to an I2C/TWI slave device
+// Refer to the "Wire Slave Receiver" example for use with this
+
+// Created 29 March 2006
+
+// This example code is in the public domain.
+
+
+#include <Wire.h>
+
+void setup() {
+ Serial.begin(9600);
+ Wire.begin();
+}
+
+int x = 0, y = 0, z = 12,l = 10;
+String str = "";
+
+void loop() {
+  str = "V";
+  str += y;
+  str += ";;";
+  Serial.println(str.c_str());
+  Wire.beginTransmission(8); // transmit to device #8
+  Wire.write(str.c_str());        // sends five bytes
+  Wire.endTransmission();    // stop transmitting
+  delay(20);
+  str = "C";
+  str += x;
+  str += ";;";
+  Wire.beginTransmission(8); // transmit to device #8
+  Wire.write(str.c_str());        // sends five bytes
+  Wire.endTransmission();
+  delay(20);
+  str = "R";
+  str += z;
+  str += ";;";
+  Wire.beginTransmission(8); // transmit to device #8
+  Wire.write(str.c_str());        // sends five bytes
+  Wire.endTransmission();
+  delay(20);
+  str = "L";
+  str += l;
+  str += ";;";
+  Wire.beginTransmission(8); // transmit to device #8
+  Wire.write(str.c_str());        // sends five bytes
+  Wire.endTransmission();
+  delay(20);
+  if(x < 13)
+    x++;
+  else
+    x = 1;
+  if( y < 100)
+    y++;
+  else
+    y = 0;
+  if(z > 0)
+    z--;
+  else
+    z = 12;
+  if(l < 62)
+    l+= 10;
+  else
+  {
+    if(l%10)
+      l = 0;
+    else
+      l = 1;
+  }
+      
+}
