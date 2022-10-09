@@ -16,7 +16,7 @@
 
 // Funções
 void ComparaVetor(unsigned char*, unsigned char*, int); // Comparar mudanças nos dados CAN
-void I2C(String, int); // Envio de I2C
+void I2C(char, int); // Envio de I2C
 void Lora(String); // Envio para telemetria
 int LedRPM(int); // Calcular o numero de leds do RPM
 int LedComb(int); // Calcular o numero de leds do combustível
@@ -36,14 +36,13 @@ File MeuArquivo; // Cria objeto da classe File
 
 void setup() 
 {
-  Wire.begin(); // Começa a I2C 
-  Serial.begin(9600); // LoRa611PRO
+  Wire.begin(); // Começa a I2C
   // Definição dos pinos
   SERIAL_PORT_MONITOR.begin(9600);
   // Verifica se a Serial foi iniciada
   while(!Serial){};
   // Verifica se a CAN foi iniciada
-  while (CAN_OK != CAN.begin(CAN_500KBPS)) 
+  while (CAN_OK != CAN.begin(CAN_125KBPS)) 
   {             
       SERIAL_PORT_MONITOR.println("CAN Falhou, tentando novamente...");
       delay(100);
@@ -146,7 +145,7 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
               I2C("V",atual[i]);  
               break;
             case 1:
-              I2C("R",LedRPM(atual[1])); // Chamo as funções LedRPM e LedComb para calcular quantos LEDs devo acender
+              I2C("R",LedRPM(atual[i])); // Chamo as funções LedRPM e LedComb para calcular quantos LEDs devo acender
               break;
             case 6:
               I2C("C",LedComb(atual[i]));
@@ -168,17 +167,14 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
     Return: VOID.
  */
 
-void I2C(String ID, int Valor)
+void I2C(char ID, int Valor)
 {
-  String str = "", lora = "";
-  str += ID, lora += ID;
-  str += Valor, lora += Valor;
-  str += ";;", lora += ";";
-  Wire.beginTransmission(8); // Inicia transmissão com o endereço 0x8 (Painel)
-  Wire.write(str.c_str());
+  Wire.beginTransmission(0x8); // Inicia transmissão com o endereço 0x8 (Painel)
+  Wire.write(ID);
+  Wire.write(Valor);
+  Wire.write(";");
   Wire.endTransmission();
   delay(20);
-  Lora(str); //Envio do padrão para telemetria
 }
 
 /* 
@@ -247,16 +243,6 @@ int LedComb(int L)
     return 2;
   else if(L >= 4)
     return 1;
-}
-
-/* 
-    Função para envio de uma string por Serial.
-    Parâmetros: String.
-    Return: VOID.
- */
-void Lora(String str)
-{
-  Serial.println(str);
 }
 
 /* 
