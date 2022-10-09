@@ -17,7 +17,6 @@
 // Funções
 void ComparaVetor(unsigned char*, unsigned char*, int); // Comparar mudanças nos dados CAN
 void I2C(char, int); // Envio de I2C
-void Lora(String); // Envio para telemetria
 int LedRPM(int); // Calcular o numero de leds do RPM
 int LedComb(int); // Calcular o numero de leds do combustível
 void TransfereVetor(unsigned char*, unsigned char*, int); // Transfere dados de um vetor para outro
@@ -92,6 +91,11 @@ void loop()
         MeuArquivo.print(Buf[i]), MeuArquivo.print(";");
       MeuArquivo.print(ID_MSG, HEX), MeuArquivo.println("]"); 
     }
+   if (millis() % 10000 == 0)
+   {
+    unsigned char teste [4] = {'a', 'b', 'c', 'd'};
+    CAN.sendMsgBuf(0x100, 0, 4, teste);
+   }
   }
 }
 
