@@ -37,7 +37,7 @@ void setup()
 {
   Wire.begin(); // Começa a I2C
   // Definição dos pinos
-  SERIAL_PORT_MONITOR.begin(9600);
+  SERIAL_PORT_MONITOR.begin(115200);
   // Verifica se a Serial foi iniciada
   while(!Serial){};
   // Verifica se a CAN foi iniciada
@@ -50,10 +50,6 @@ void setup()
    
   // Verifica o cartão SD
   SERIAL_PORT_MONITOR.print("Iniciando Cartao SD...");
-  while (!SD.begin(CS_CardSD)) 
-  {
-    SERIAL_PORT_MONITOR.println("Cartão SD falhou!");
-  }
   SERIAL_PORT_MONITOR.println("Inicialização feita.");
   MeuArquivo = SD.open("Dados.txt", FILE_WRITE); // Abro um arquivo para escrita
 }
@@ -69,12 +65,12 @@ void loop()
     // Transferindo vetores e comparando mudanças
     switch (ID_MSG)
     {
-      case 1:
+      case 0x1:
         TransfereVetor(Media, MediaPas, 8);
         TransfereVetor(Buf, Media, 8);
         ComparaVetor(Media, MediaPas, 8);
         break;
-      case 10:
+      case 0x10:
         TransfereVetor(Traseira, TraseiraPas, 8);
         TransfereVetor(Buf, Traseira, 8);
         ComparaVetor(Traseira, TraseiraPas, 8);
@@ -91,12 +87,7 @@ void loop()
         MeuArquivo.print(Buf[i]), MeuArquivo.print(";");
       MeuArquivo.print(ID_MSG, HEX), MeuArquivo.println("]"); 
     }
-   if (millis() % 10000 == 0)
-   {
-    unsigned char teste [4] = {'a', 'b', 'c', 'd'};
-    CAN.sendMsgBuf(0x100, 0, 4, teste);
    }
-  }
 }
 
 /* 
@@ -124,21 +115,21 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
           {
             case 2: // Temperatura
               if(atual[i] == 1)
-                I2C("L",11); // Envio 11 pois significa que o LED 1 tem valor de 1(HIGH)
+                I2C('L',11); // Envio 11 pois significa que o LED 1 tem valor de 1(HIGH)
               else if(atual[i] == 0)
-                I2C("L",10);
+                I2C('L',10);
               break;
             case 3: // Freio
               if(atual[i] == 1)
-                I2C("L",21);
+                I2C('L',21);
               else if(atual[i] == 0)
-                I2C("L",20);
+                I2C('L',20);
               break;
             case 6: // Bateria
               if(atual[i] == 1)
-                I2C("L",31);
+                I2C('L',31);
               else if(atual[i] == 0)
-                I2C("L",30);
+                I2C('L',30);
               break;
           }
           break;
@@ -146,17 +137,17 @@ void ComparaVetor(unsigned char* atual, unsigned char* passado, int len)
           switch(i)
           {
             case 0:
-              I2C("V",atual[i]);  
+              I2C('V',atual[i]);  
               break;
             case 1:
-              I2C("R",LedRPM(atual[i])); // Chamo as funções LedRPM e LedComb para calcular quantos LEDs devo acender
+              I2C('R',LedRPM(atual[i])); // Chamo as funções LedRPM e LedComb para calcular quantos LEDs devo acender
               break;
             case 6:
-              I2C("C",LedComb(atual[i]));
+              I2C('C',LedComb(atual[i]));
               if(LedComb(atual[i]) <= 2)
-                I2C("L",41);
+                I2C('L',41);
               else if(LedComb(atual[i]) > 2)
-                I2C("L",40);   
+                I2C('L',40);   
               break;
           }
           break;
@@ -259,5 +250,6 @@ void TransfereVetor(unsigned char* entrada, unsigned char* saida, int len)
     for(int i = 0; i < len; i++)
     {
       saida[i] = entrada[i];
+      I2C('x',saida[i]);
     }
 }
